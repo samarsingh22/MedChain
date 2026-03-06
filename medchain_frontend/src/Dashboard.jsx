@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { QRCodeCanvas } from "qrcode.react";
-import { Shield, Activity, Share2, AlertTriangle, Eye, ShieldCheck, Database, Key } from "lucide-react";
+import { Html5QrcodeScanner } from "html5-qrcode";
+import { Shield, Activity, Share2, AlertTriangle, Eye, ShieldCheck, Database, Key, QrCode } from "lucide-react";
 import { motion } from "framer-motion";
 
 const contractAddress = "0xbF144B079d290eaE62Ae97274D39DFa71E012Eb9";
@@ -174,7 +175,10 @@ const abi = [
 ];
 
 function Dashboard() {
-    const [txHash, setTxHash] = useState("");
+    const [createTxHash, setCreateTxHash] = useState("");
+    const [transferTxHash, setTransferTxHash] = useState("");
+    const [recallTxHash, setRecallTxHash] = useState("");
+
     const [account, setAccount] = useState(null);
     const [role, setRole] = useState("Manufacturer");
     const [contract, setContract] = useState(null);
@@ -183,11 +187,14 @@ function Dashboard() {
     const [drugName, setDrugName] = useState("");
     const [mfgDate, setMfgDate] = useState("");
     const [expDate, setExpDate] = useState("");
+    const [lastCreatedBatch, setLastCreatedBatch] = useState(null);
+
     const [transferId, setTransferId] = useState("");
     const [newOwner, setNewOwner] = useState("");
 
     const [verifyId, setVerifyId] = useState("");
     const [batchData, setBatchData] = useState(null);
+    const [showScanner, setShowScanner] = useState(false);
 
     const [recallId, setRecallId] = useState("");
     const [loading, setLoading] = useState(false);
@@ -203,6 +210,42 @@ function Dashboard() {
 
         return () => clearInterval(glitchInterval);
     }, []);
+
+    // QR Optical Scanner hook for the consumer tab
+    useEffect(() => {
+        if (showScanner) {
+            // Give the DOM a tiny bit of time to render the #qr-reader div
+            setTimeout(() => {
+                const scanner = new Html5QrcodeScanner("qr-reader", {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    rememberLastUsedCamera: true,
+                    aspectRatio: 1.0,
+                }, false);
+
+                scanner.render(
+                    (decodedText) => {
+                        try {
+                            const parsed = JSON.parse(decodedText);
+                            setVerifyId(parsed.BatchID || parsed.batchId || decodedText);
+                        } catch (e) {
+                            setVerifyId(decodedText);
+                        }
+                        scanner.clear();
+                        setShowScanner(false);
+                    },
+                    (err) => {
+                        // ignore frame-level scanning errors
+                    }
+                );
+
+                // Cleanup on unmount or component hide
+                return () => {
+                    scanner.clear().catch(console.error);
+                };
+            }, 100);
+        }
+    }, [showScanner]);
 
     async function connectWallet() {
         if (!window.ethereum) {
@@ -245,6 +288,7 @@ function Dashboard() {
 
         try {
             setLoading(true);
+            setCreateTxHash(""); // clear old hash
 
             const tx = await contract.createBatch(
                 batchId,
@@ -252,11 +296,17 @@ function Dashboard() {
                 mfgDate,
                 expDate
             );
-            setTxHash(tx.hash);
+            setCreateTxHash(tx.hash);
             await tx.wait();
 
             alert("SUCCESS: BATCH APPENDED TO LEDGER.");
 
+            // Store it so the QR code generates persistently below the form
+            setLastCreatedBatch({
+                batchId, drugName, mfgDate, expDate
+            });
+
+            // Clear the inputs
             setBatchId("");
             setDrugName("");
             setMfgDate("");
@@ -283,9 +333,10 @@ function Dashboard() {
 
         try {
             setLoading(true);
+            setTransferTxHash(""); // clear old hash
 
             const tx = await contract.transferBatch(transferId, newOwner);
-            setTxHash(tx.hash);
+            setTransferTxHash(tx.hash);
             await tx.wait();
 
             alert("SUCCESS: CUSTODY TRANSFERRED.");
@@ -314,9 +365,10 @@ function Dashboard() {
 
         try {
             setLoading(true);
+            setRecallTxHash(""); // clear old hash
 
             const tx = await contract.recallBatch(recallId);
-            setTxHash(tx.hash);
+            setRecallTxHash(tx.hash);
             await tx.wait();
 
             alert("CRITICAL ALERT: BATCH OFFICIALLY RECALLED.");
@@ -439,21 +491,32 @@ function Dashboard() {
                             </button>
                         </div>
 
-                        {txHash && (
+                        {createTxHash && (
                             <div className="tx-info">
                                 <p>TX.HASH:</p>
-                                <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer">
-                                    {txHash}
+                                <a href={`https://sepolia.etherscan.io/tx/${createTxHash}`} target="_blank" rel="noopener noreferrer">
+                                    {createTxHash}
                                 </a>
                             </div>
                         )}
-                        {batchId && (
-                            <div className="qr-container">
+                        {lastCreatedBatch && (
+                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="qr-container">
                                 <h4>VISUAL_KEY</h4>
-                                <div className="qr-bg">
-                                    <QRCodeCanvas value={batchId} size={150} fgColor="#00ff00" bgColor="#001a00" />
+                                <div className="qr-bg" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <QRCodeCanvas
+                                        value={JSON.stringify({
+                                            BatchID: lastCreatedBatch.batchId,
+                                            Drug: lastCreatedBatch.drugName,
+                                            Mfg: lastCreatedBatch.mfgDate,
+                                            Exp: lastCreatedBatch.expDate
+                                        }, null, 2)}
+                                        size={200}
+                                        fgColor="#00ff00"
+                                        bgColor="#001a00"
+                                    />
+                                    <p style={{ marginTop: '10px', fontSize: '0.8rem', color: '#0f0', textShadow: '0 0 5px #0f0' }}>SCAN FOR FULL PAYLOAD</p>
                                 </div>
-                            </div>
+                            </motion.div>
                         )}
                     </motion.div>
                 )}
@@ -477,11 +540,11 @@ function Dashboard() {
                             </button>
                         </div>
 
-                        {txHash && (
+                        {transferTxHash && (
                             <div className="tx-info">
                                 <p>TX.HASH:</p>
-                                <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer">
-                                    {txHash}
+                                <a href={`https://sepolia.etherscan.io/tx/${transferTxHash}`} target="_blank" rel="noopener noreferrer">
+                                    {transferTxHash}
                                 </a>
                             </div>
                         )}
@@ -503,11 +566,11 @@ function Dashboard() {
                             </button>
                         </div>
 
-                        {txHash && (
+                        {recallTxHash && (
                             <div className="tx-info">
                                 <p>TX.HASH:</p>
-                                <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer">
-                                    {txHash}
+                                <a href={`https://sepolia.etherscan.io/tx/${recallTxHash}`} target="_blank" rel="noopener noreferrer">
+                                    {recallTxHash}
                                 </a>
                             </div>
                         )}
@@ -523,10 +586,25 @@ function Dashboard() {
                                 value={verifyId}
                                 onChange={(e) => setVerifyId(e.target.value)}
                             />
-                            <button onClick={verifyBatch} disabled={loading} className="btn-action">
-                                {loading ? "SCANNING..." : "VERIFY_INTEGRITY"}
-                            </button>
+
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button onClick={verifyBatch} disabled={loading} className="btn-action" style={{ flex: 1 }}>
+                                    {loading ? "SCANNING..." : "VERIFY_INTEGRITY"}
+                                </button>
+
+                                <button onClick={() => setShowScanner(!showScanner)} className={showScanner ? "btn-connected" : "btn-action"} style={{ flex: 1 }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                                        <QrCode size={18} /> {showScanner ? "CLOSE SENSOR" : "OPTICAL_SCAN"}
+                                    </span>
+                                </button>
+                            </div>
                         </div>
+
+                        {showScanner && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} style={{ width: '100%', maxWidth: '400px', overflow: 'hidden', borderRadius: '8px', border: '1px solid #0f0' }}>
+                                <div id="qr-reader" style={{ width: '100%', backgroundColor: '#001a00' }}></div>
+                            </motion.div>
+                        )}
 
                         {batchData && (
                             <motion.div
@@ -570,6 +648,25 @@ function Dashboard() {
                                         <strong className={batchData.recalled ? "text-red" : "text-green"}>
                                             {batchData.recalled ? "COMPROMISED" : "CLEAR"}
                                         </strong>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                                    <p style={{ color: 'var(--text-dim)', fontSize: '0.8em', marginBottom: '10px' }}>[ EXPORT_PORTABLE_RECORD ]</p>
+                                    <div className="qr-bg" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'transparent' }}>
+                                        <QRCodeCanvas
+                                            value={JSON.stringify({
+                                                BatchID: batchData.batchId,
+                                                Drug: batchData.drugName,
+                                                Mfg: batchData.mfgDate,
+                                                Exp: batchData.expDate,
+                                                Status: batchData.recalled ? "RECALLED" : "VERIFIED",
+                                                Network: "MedChain (Sepolia)"
+                                            }, null, 2)}
+                                            size={120}
+                                            fgColor={batchData.recalled ? "#ff003c" : "#00ff00"}
+                                            bgColor="#000"
+                                        />
                                     </div>
                                 </div>
                             </motion.div>
