@@ -3,6 +3,7 @@
   margin: 0 auto;
   padding: 2rem;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .dashboard-container {
@@ -12,6 +13,7 @@
   padding: 2rem;
   box-shadow: var(--border-glow);
   position: relative;
+  z-index: 10;
   overflow: hidden;
   backdrop-filter: blur(5px);
   margin-top: 2rem;
@@ -33,6 +35,8 @@
 .header {
   text-align: center;
   margin-bottom: 2rem;
+  position: relative;
+  z-index: 10;
 }
 
 .header h1 {
