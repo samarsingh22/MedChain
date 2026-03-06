@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { QRCodeCanvas } from "qrcode.react";
-import { Html5QrcodeScanner } from "html5-qrcode";
 import { Shield, Activity, Share2, AlertTriangle, Eye, ShieldCheck, Database, Key, QrCode } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -194,7 +193,6 @@ function Dashboard() {
 
     const [verifyId, setVerifyId] = useState("");
     const [batchData, setBatchData] = useState(null);
-    const [showScanner, setShowScanner] = useState(false);
 
     const [recallId, setRecallId] = useState("");
     const [loading, setLoading] = useState(false);
@@ -211,41 +209,7 @@ function Dashboard() {
         return () => clearInterval(glitchInterval);
     }, []);
 
-    // QR Optical Scanner hook for the consumer tab
-    useEffect(() => {
-        if (showScanner) {
-            // Give the DOM a tiny bit of time to render the #qr-reader div
-            setTimeout(() => {
-                const scanner = new Html5QrcodeScanner("qr-reader", {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    rememberLastUsedCamera: true,
-                    aspectRatio: 1.0,
-                }, false);
-
-                scanner.render(
-                    (decodedText) => {
-                        try {
-                            const parsed = JSON.parse(decodedText);
-                            setVerifyId(parsed.BatchID || parsed.batchId || decodedText);
-                        } catch (e) {
-                            setVerifyId(decodedText);
-                        }
-                        scanner.clear();
-                        setShowScanner(false);
-                    },
-                    (err) => {
-                        // ignore frame-level scanning errors
-                    }
-                );
-
-                // Cleanup on unmount or component hide
-                return () => {
-                    scanner.clear().catch(console.error);
-                };
-            }, 100);
-        }
-    }, [showScanner]);
+    // QR scanner removed as per user request
 
     async function connectWallet() {
         if (!window.ethereum) {
@@ -587,24 +551,10 @@ function Dashboard() {
                                 onChange={(e) => setVerifyId(e.target.value)}
                             />
 
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <button onClick={verifyBatch} disabled={loading} className="btn-action" style={{ flex: 1 }}>
-                                    {loading ? "SCANNING..." : "VERIFY_INTEGRITY"}
-                                </button>
-
-                                <button onClick={() => setShowScanner(!showScanner)} className={showScanner ? "btn-connected" : "btn-action"} style={{ flex: 1 }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                                        <QrCode size={18} /> {showScanner ? "CLOSE SENSOR" : "OPTICAL_SCAN"}
-                                    </span>
-                                </button>
-                            </div>
+                            <button onClick={verifyBatch} disabled={loading} className="btn-action">
+                                {loading ? "SCANNING..." : "VERIFY_INTEGRITY"}
+                            </button>
                         </div>
-
-                        {showScanner && (
-                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} style={{ width: '100%', maxWidth: '400px', overflow: 'hidden', borderRadius: '8px', border: '1px solid #0f0' }}>
-                                <div id="qr-reader" style={{ width: '100%', backgroundColor: '#001a00' }}></div>
-                            </motion.div>
-                        )}
 
                         {batchData && (
                             <motion.div
