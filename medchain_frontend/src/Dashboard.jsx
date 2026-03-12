@@ -79,7 +79,7 @@ function Dashboard() {
     };
 
     async function connectWallet() {
-        if (!window.ethereum) { displayMessage("Please install MetaMask to use SentinelChain.", "error"); return; }
+        if (!window.ethereum) { displayMessage("Please install MetaMask to use TrueTrace.", "error"); return; }
         try {
             const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
             setAccount(accounts[0]);
@@ -151,11 +151,11 @@ function Dashboard() {
         <>
             {/* Nav */}
             <nav className="navbar">
-                <Link to="/" className="nav-logo" style={{ textDecoration: 'none' }}>SentinelChain</Link>
+                <Link to="/" className="nav-logo" style={{ textDecoration: 'none' }}>TrueTrace</Link>
                 <div className="nav-links">
-                    <a href="#">Dashboard</a>
-                    <a href="#">Analytics</a>
-                    <a href="#">Docs</a>
+                    <Link to="/app" style={{ textDecoration: 'none', color: 'var(--text)', fontWeight: 600 }}>Dashboard</Link>
+                    <Link to="/analytics" style={{ textDecoration: 'none', color: 'var(--text-secondary)' }}>Analytics</Link>
+                    <Link to="/docs" style={{ textDecoration: 'none', color: 'var(--text-secondary)' }}>Docs</Link>
                 </div>
                 <div className="nav-right">
                     <button
