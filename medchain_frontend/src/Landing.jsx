@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Shield, Layers, Box, QrCode, Cpu, BarChart3, Database, Code2, Users, AlertTriangle } from 'lucide-react';
-import { useCountUp, parseNumberString } from './useCountUp';
 
 /* ---- Particle Globe ---- */
 function ParticleGlobe() {
@@ -83,27 +82,20 @@ function Navbar() {
     );
 }
 
-/* ---- Animated Number ---- */
-function AnimatedNumber({ value }) {
-    const parsed = parseNumberString(value);
-    const [ref, count] = useCountUp(parsed.number, 1400);
-    return <span ref={ref}>{parsed.prefix}{count.toLocaleString()}{parsed.suffix}</span>;
-}
-
 /* ---- Metrics Row ---- */
 function Metrics() {
     const stats = [
         { number: '$500B+', label: 'Global counterfeit market', brand: 'WHO Estimate' },
         { number: '7+', label: 'Industries protected', brand: 'Cross-Sector' },
         { number: '100%', label: 'Tamper-proof records', brand: 'Blockchain Verified' },
-        { number: '2s', label: 'Verification time', brand: 'Real-time Analytics' },
+        { number: '<2s', label: 'Verification time', brand: 'Real-time Analytics' },
     ];
 
     return (
         <div className="metrics-row">
             {stats.map((s, i) => (
                 <motion.div className="metric-item" key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }}>
-                    <div className="metric-number"><AnimatedNumber value={s.number} /></div>
+                    <div className="metric-number">{s.number}</div>
                     <div className="metric-label">{s.label}</div>
                     <div className="metric-brand">{s.brand}</div>
                 </motion.div>

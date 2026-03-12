@@ -1,13 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BarChart3, TrendingUp, Globe, ShieldCheck, AlertTriangle, Package, Users, Activity } from "lucide-react";
-import { useCountUp, parseNumberString } from './useCountUp';
-
-function AnimatedKPI({ value }) {
-    const parsed = parseNumberString(value);
-    const [ref, count] = useCountUp(parsed.number, 1200);
-    return <span ref={ref}>{parsed.prefix}{count.toLocaleString()}{parsed.suffix}</span>;
-}
 
 const fadeUp = { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true } };
 
@@ -77,7 +70,7 @@ export default function Analytics() {
                         <motion.div className="kpi-card" key={i} {...fadeUp} transition={{ delay: i * 0.08 }}>
                             <div className="kpi-icon">{kpi.icon}</div>
                             <div className="kpi-label">{kpi.label}</div>
-                            <div className="kpi-value"><AnimatedKPI value={kpi.value} /></div>
+                            <div className="kpi-value">{kpi.value}</div>
                             <div className={`kpi-change ${kpi.up ? 'up' : 'down'}`}>
                                 <TrendingUp size={14} style={{ transform: kpi.up ? '' : 'rotate(180deg)' }} /> {kpi.change} this month
                             </div>
