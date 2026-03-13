@@ -1,2 +1,1 @@
-# MedChain
-Blockchain Based medicine supply system
+TrueTrace is a blockchain-powered platform that detects counterfeit products and ensures product authenticity across supply chains. It uses smart contracts, QR code verification, and anomaly detection to provide transparent product tracking from manufacturer to consumer.
